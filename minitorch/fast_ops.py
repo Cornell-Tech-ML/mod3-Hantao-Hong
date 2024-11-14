@@ -273,7 +273,7 @@ def tensor_reduce(
         Tensor reduce function
 
     """
-    
+
     def _reduce(
         out: Storage,
         out_shape: Shape,
@@ -286,7 +286,6 @@ def tensor_reduce(
         # TODO: Implement for Task 3.1.
         # raise NotImplementedError("Need to implement for Task 3.1")
 
-
         for i in prange(len(out)):
             # Reset indices to zero at each iteration
             reduce_size = a_shape[reduce_dim]
@@ -298,7 +297,6 @@ def tensor_reduce(
 
             to_index(i, out_shape, out_index)
             o = int(index_to_position(out_index, out_strides))
-
 
             for idx in range(MAX_DIMS):
                 a_index[idx] = out_index[idx]
@@ -373,7 +371,9 @@ def _tensor_matrix_multiply(
                     a_idx += a_strides[2]
                     b_idx += b_strides[1]
 
-                out[n * out_strides[0] + i * out_strides[1] + j * out_strides[2]] = accum
+                out[n * out_strides[0] + i * out_strides[1] + j * out_strides[2]] = (
+                    accum
+                )
 
 
 tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True)

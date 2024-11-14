@@ -106,6 +106,7 @@ def broadcast_index(
             out_index[i] = 0
     return None
 
+
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
     """Broadcast two shapes to create a new union shape.
 
