@@ -111,7 +111,8 @@ class FastOps(TensorOps):
 
         Should work for tensor shapes of 3 dims ::
 
-            assert a.shape[-1] == b.shape[-2]
+            if a.shape[-1] != b.shape[-2]:
+                raise ValueError("Shapes are not aligned for matrix multiplication")
 
         Args:
         ----
@@ -182,9 +183,13 @@ def tensor_map(
         # TODO: Implement for Task 3.1.
         # raise NotImplementedError("Need to implement for Task 3.1")
 
+        # for i in prange(len(out)):
+        #     out[i] = in_storage[i] * 2  # Simple operation
+
         for i in prange(len(out)):
-            out_index = np.zeros_like(out_shape)
-            in_index = np.zeros_like(in_shape)
+            out_index = np.zeros(len(out_shape), dtype=np.int32)
+            in_index = np.zeros(len(in_shape), dtype=np.int32)
+
             to_index(i, out_shape, out_index)
             broadcast_index(out_index, out_shape, in_shape, in_index)
             o = index_to_position(out_index, out_strides)
@@ -232,18 +237,17 @@ def tensor_zip(
         # raise NotImplementedError("Need to implement for Task 3.1")
 
         for i in prange(len(out)):
-            out_index = np.zeros_like(out_shape)
-            a_index = np.zeros_like(a_shape)
-            b_index = np.zeros_like(b_shape)
+            out_index = np.zeros(len(out_shape), dtype=np.int32)
+            a_index = np.zeros(len(a_shape), dtype=np.int32)
+            b_index = np.zeros(len(b_shape), dtype=np.int32)
+
             to_index(i, out_shape, out_index)
-
-            broadcast_index(out_index, out_shape, a_shape, a_index)
-            broadcast_index(out_index, out_shape, b_shape, b_index)
-
             o = index_to_position(out_index, out_strides)
-            a = index_to_position(a_index, a_strides)
-            b = index_to_position(b_index, b_strides)
-            out[o] = fn(a_storage[a], b_storage[b])
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            j = index_to_position(a_index, a_strides)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            k = index_to_position(b_index, b_strides)
+            out[o] = fn(a_storage[j], b_storage[k])
 
     return njit(_zip, parallel=True)  # type: ignore
 
@@ -281,23 +285,20 @@ def tensor_reduce(
         # TODO: Implement for Task 3.1.
         # raise NotImplementedError("Need to implement for Task 3.1")
 
-        reduce_shape = np.array(a_shape)
-        for m in range(len(reduce_shape)):
-            if m != reduce_dim:
-                reduce_shape[m] = 1
-        reduce_shape[reduce_dim] = a_shape[reduce_dim]
-
-        out_index = np.array(out_shape)
+        reduce_size = a_shape[reduce_dim]
 
         for i in prange(len(out)):
-            reduce_size = a_shape[reduce_dim]
-
+            out_index = np.zeros(len(out_shape), dtype=np.int32)
+            in_index = np.zeros(len(a_shape), dtype=np.int32)
             to_index(i, out_shape, out_index)
-
             o = index_to_position(out_index, out_strides)
+
             for s in range(reduce_size):
-                out_index[reduce_dim] = s
-                j = index_to_position(out_index, a_strides)
+                # Manually copy out_index to in_index
+                for idx in range(len(out_index)):
+                    in_index[idx] = out_index[idx]
+                in_index[reduce_dim] = s
+                j = index_to_position(in_index, a_strides)
                 out[o] = fn(out[o], a_storage[j])
 
     return njit(_reduce, parallel=True)  # type: ignore

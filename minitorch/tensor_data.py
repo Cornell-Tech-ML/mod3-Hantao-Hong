@@ -48,10 +48,10 @@ def index_to_position(index: Index, strides: Strides) -> int:
     """
     # TODO: Implement for Task 2.1.
     # raise NotImplementedError("Need to implement for Task 2.1")
-    if len(index) != len(strides):
-        raise IndexingError("Index and strides must have the same length")
-    result = sum([i * s for i, s in zip(index, strides)])
-    return result
+    position = 0
+    for ind, stride in zip(index, strides):
+        position += ind * stride
+    return position
 
 
 def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
@@ -69,11 +69,11 @@ def to_index(ordinal: int, shape: Shape, out_index: OutIndex) -> None:
     """
     # TODO: Implement for Task 2.1.
     # raise NotImplementedError("Need to· implement for Task 2.1")
-    if len(out_index) != len(shape):
-        raise IndexingError("out_index and shape must have the same length")
-    for idx, val in enumerate(shape):
-        out_index[idx] = ordinal % val
-        ordinal = ordinal // val
+    cur_ord = ordinal + 0
+    for i in range(len(shape) - 1, -1, -1):
+        sh = shape[i]
+        out_index[i] = int(cur_ord % sh)
+        cur_ord = cur_ord // sh
 
 
 def broadcast_index(
@@ -99,26 +99,12 @@ def broadcast_index(
     """
     # TODO: Implement for Task 2.2.
     # raise NotImplementedError("Need to implement for Task 2.2")
-    assert len(big_index) == len(
-        big_shape
-    ), "big_index and big_shape must have the same length"
-    assert len(out_index) == len(shape), "out_index and shape must have the same length"
-
-    big_dims = len(big_shape)
-    dims = len(shape)
-    assert big_dims >= dims, "big_shape must have more dimensions than shape"
-
-    dim_diff = big_dims - dims
-
-    for i in range(dims - 1, -1, -1):
-        if shape[i] == 1:
-            out_index[i] = 0
+    for i, s in enumerate(shape):
+        if s > 1:
+            out_index[i] = big_index[i + (len(big_shape) - len(shape))]
         else:
-            if shape[i] != big_shape[i + dim_diff]:
-                raise IndexingError("big_shape and shape must match")
-            else:
-                out_index[i] = big_index[i + dim_diff]
-
+            out_index[i] = 0
+    return None
 
 def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
     """Broadcast two shapes to create a new union shape.
@@ -139,22 +125,23 @@ def shape_broadcast(shape1: UserShape, shape2: UserShape) -> UserShape:
     """
     # TODO: Implement for Task 2.2.
     # raise NotImplementedError("Need to implement for Task 2.2")
-    dims1 = len(shape1)
-    dims2 = len(shape2)
-    max_dims = max(dims1, dims2)
-
-    result: UserShape = [0] * max_dims
-
-    a_rev = list(reversed(shape1))
-    b_rev = list(reversed(shape2))
-    for i in range(max_dims):
-        a = a_rev[i] if i < dims1 else 1
-        b = b_rev[i] if i < dims2 else 1
-        if a != b and a != 1 and b != 1:
-            raise IndexingError(f"Shapes {shape1} and {shape2} are not broadcastable")
-        result[i] = max(a, b)
-
-    return tuple(reversed(result))
+    a, b = shape1, shape2
+    m = max(len(a), len(b))
+    c_rev = [0] * m
+    a_rev = list(reversed(a))
+    b_rev = list(reversed(b))
+    for i in range(m):
+        if i >= len(a):
+            c_rev[i] = b_rev[i]
+        elif i >= len(b):
+            c_rev[i] = a_rev[i]
+        else:
+            c_rev[i] = max(a_rev[i], b_rev[i])
+            if a_rev[i] != c_rev[i] and a_rev[i] != 1:
+                raise IndexingError(f"Shapes {a} and {b} are not broadcastable.")
+            if b_rev[i] != c_rev[i] and b_rev[i] != 1:
+                raise IndexingError(f"Shapes {a} and {b} are not broadcastable.")
+    return tuple(reversed(c_rev))
 
 
 def strides_from_shape(shape: UserShape) -> UserStrides:
@@ -338,7 +325,7 @@ class TensorData:
         return TensorData(
             self._storage,
             tuple([self.shape[i] for i in order]),
-            tuple([self.strides[i] for i in order]),
+            tuple([self._strides[i] for i in order]),
         )
 
     def to_string(self) -> str:

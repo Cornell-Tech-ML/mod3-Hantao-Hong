@@ -375,7 +375,7 @@ class Tensor:
     def __rmul__(self, b: TensorLike) -> Tensor:
         return Mul.apply(self._ensure_tensor(b), self)
 
-    def all(self, dim: Optional[Tensor] = None) -> Tensor:
+    def all(self, dim: Optional[int] = None) -> Tensor:
         """Check if all elements in the tensor are True along a specified dimension.
 
         Args:
