@@ -7,7 +7,6 @@ from numba import prange
 from numba import njit as _njit
 
 from .tensor_data import (
-    MAX_DIMS,
     broadcast_index,
     index_to_position,
     shape_broadcast,
@@ -19,7 +18,7 @@ if TYPE_CHECKING:
     from typing import Callable, Optional
 
     from .tensor import Tensor
-    from .tensor_data import Index, Shape, Storage, Strides
+    from .tensor_data import Shape, Storage, Strides
 
 # TIP: Use `NUMBA_DISABLE_JIT=1 pytest tests/ -m task3_1` to run these tests without JIT.
 
@@ -30,6 +29,18 @@ Fn = TypeVar("Fn")
 
 
 def njit(fn: Fn, **kwargs: Any) -> Fn:
+    """A wrapper for Numba's njit function with inline always.
+
+    Args:
+    ----
+        fn: The function to be JIT compiled.
+        **kwargs: Additional keyword arguments for njit.
+
+    Returns:
+    -------
+        The JIT compiled function.
+
+    """
     return _njit(inline="always", **kwargs)(fn)  # type: ignore
 
 
@@ -220,7 +231,6 @@ def tensor_zip(
         # TODO: Implement for Task 3.1.
         # raise NotImplementedError("Need to implement for Task 3.1")
 
-
         for i in prange(len(out)):
             out_index = np.zeros_like(out_shape)
             a_index = np.zeros_like(a_shape)
@@ -278,7 +288,6 @@ def tensor_reduce(
         reduce_shape[reduce_dim] = a_shape[reduce_dim]
 
         out_index = np.array(out_shape)
-
 
         for i in prange(len(out)):
             reduce_size = a_shape[reduce_dim]
@@ -342,7 +351,7 @@ def _tensor_matrix_multiply(
 
     # TODO: Implement for Task 3.2.
     # raise NotImplementedError("Need to implement for Task 3.2")
-    
+
     for i1 in prange(out_shape[0]):
         for i2 in prange(out_shape[1]):
             for i3 in prange(out_shape[2]):
