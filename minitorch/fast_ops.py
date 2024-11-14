@@ -7,6 +7,7 @@ from numba import prange
 from numba import njit as _njit
 
 from .tensor_data import (
+    MAX_DIMS,
     broadcast_index,
     index_to_position,
     shape_broadcast,
@@ -187,8 +188,8 @@ def tensor_map(
         #     out[i] = in_storage[i] * 2  # Simple operation
 
         for i in prange(len(out)):
-            out_index = np.zeros(len(out_shape), dtype=np.int32)
-            in_index = np.zeros(len(in_shape), dtype=np.int32)
+            out_index = np.zeros(MAX_DIMS, dtype=np.int32)
+            in_index = np.zeros(MAX_DIMS, dtype=np.int32)
 
             to_index(i, out_shape, out_index)
             broadcast_index(out_index, out_shape, in_shape, in_index)
@@ -237,9 +238,9 @@ def tensor_zip(
         # raise NotImplementedError("Need to implement for Task 3.1")
 
         for i in prange(len(out)):
-            out_index = np.zeros(len(out_shape), dtype=np.int32)
-            a_index = np.zeros(len(a_shape), dtype=np.int32)
-            b_index = np.zeros(len(b_shape), dtype=np.int32)
+            out_index = np.zeros(MAX_DIMS, dtype=np.int32)
+            a_index = np.zeros(MAX_DIMS, dtype=np.int32)
+            b_index = np.zeros(MAX_DIMS, dtype=np.int32)
 
             to_index(i, out_shape, out_index)
             o = index_to_position(out_index, out_strides)
@@ -272,7 +273,7 @@ def tensor_reduce(
         Tensor reduce function
 
     """
-
+    
     def _reduce(
         out: Storage,
         out_shape: Shape,
@@ -285,21 +286,27 @@ def tensor_reduce(
         # TODO: Implement for Task 3.1.
         # raise NotImplementedError("Need to implement for Task 3.1")
 
-        reduce_size = a_shape[reduce_dim]
 
         for i in prange(len(out)):
-            out_index = np.zeros(len(out_shape), dtype=np.int32)
-            in_index = np.zeros(len(a_shape), dtype=np.int32)
+            # Reset indices to zero at each iteration
+            reduce_size = a_shape[reduce_dim]
+            out_index = np.zeros(MAX_DIMS, dtype=np.int32)
+            a_index = np.zeros(MAX_DIMS, dtype=np.int32)
+            for idx in range(MAX_DIMS):
+                out_index[idx] = 0
+                a_index[idx] = 0
+
             to_index(i, out_shape, out_index)
             o = index_to_position(out_index, out_strides)
 
+
+            for idx in range(MAX_DIMS):
+                a_index[idx] = out_index[idx]
+
             for s in range(reduce_size):
-                # Manually copy out_index to in_index
-                for idx in range(len(out_index)):
-                    in_index[idx] = out_index[idx]
-                in_index[reduce_dim] = s
-                j = index_to_position(in_index, a_strides)
-                out[o] = fn(out[o], a_storage[j])
+                a_index[reduce_dim] = s
+                pos_a = index_to_position(a_index, a_strides)
+                out[o] = fn(out[o], a_storage[pos_a])
 
     return njit(_reduce, parallel=True)  # type: ignore
 
@@ -353,18 +360,20 @@ def _tensor_matrix_multiply(
     # TODO: Implement for Task 3.2.
     # raise NotImplementedError("Need to implement for Task 3.2")
 
-    for i1 in prange(out_shape[0]):
-        for i2 in prange(out_shape[1]):
-            for i3 in prange(out_shape[2]):
-                ai = i1 * a_batch_stride + i2 * a_strides[1]
-                bi = i1 * b_batch_stride + i3 * b_strides[2]
-                acc = 0.0
+    assert a_shape[-1] == b_shape[-2]
+
+    for n in prange(out_shape[0]):
+        for i in prange(out_shape[1]):
+            for j in prange(out_shape[2]):
+                a_idx = n * a_batch_stride + i * a_strides[1]
+                b_idx = n * b_batch_stride + j * b_strides[2]
+                accum = 0.0
                 for _ in range(a_shape[2]):
-                    acc += a_storage[ai] * b_storage[bi]
-                    ai += a_strides[2]
-                    bi += b_strides[1]
-                oi = i1 * out_strides[0] + i2 * out_strides[1] + i3 * out_strides[2]
-                out[oi] = acc
+                    accum += a_storage[a_idx] * b_storage[b_idx]
+                    a_idx += a_strides[2]
+                    b_idx += b_strides[1]
+
+                out[n * out_strides[0] + i * out_strides[1] + j * out_strides[2]] = accum
 
 
 tensor_matrix_multiply = njit(_tensor_matrix_multiply, parallel=True)
