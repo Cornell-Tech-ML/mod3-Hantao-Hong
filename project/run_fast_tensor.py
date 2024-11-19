@@ -1,7 +1,7 @@
 import random
 import numba
 import minitorch
-import time  # Added for timing
+import time  # Added import
 
 datasets = minitorch.datasets
 FastTensorBackend = minitorch.TensorBackend(minitorch.FastOps)
@@ -9,8 +9,8 @@ if numba.cuda.is_available():
     GPUBackend = minitorch.TensorBackend(minitorch.CudaOps)
 
 
-def default_log_fn(epoch, total_loss, correct, losses):
-    print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
+def default_log_fn(epoch, total_loss, correct, losses, epoch_time):  # Modified function signature
+    print("Epoch ", epoch, " loss ", total_loss, "correct", correct, "time", epoch_time)
 
 
 def RParam(*shape, backend):
@@ -55,7 +55,6 @@ class FastTrain:
         self.hidden_layers = hidden_layers
         self.model = Network(hidden_layers, backend)
         self.backend = backend
-        self.epoch_times = []  # Initialize list to store epoch times
 
     def run_one(self, x):
         return self.model.forward(minitorch.tensor([x], backend=self.backend))
@@ -68,10 +67,9 @@ class FastTrain:
         optim = minitorch.SGD(self.model.parameters(), learning_rate)
         BATCH = 10
         losses = []
-        self.epoch_times = []  # Initialize epoch times
 
         for epoch in range(max_epochs):
-            start_time = time.time()  # Start timing
+            start_time = time.time()  # Start time
             total_loss = 0.0
             c = list(zip(data.X, data.y))
             random.shuffle(c)
@@ -93,10 +91,6 @@ class FastTrain:
                 # Update
                 optim.step()
 
-            end_time = time.time()  # End timing
-            epoch_duration = end_time - start_time
-            self.epoch_times.append(epoch_duration)  # Record epoch time
-
             losses.append(total_loss)
             # Logging
             if epoch % 10 == 0 or epoch == max_epochs:
@@ -105,7 +99,8 @@ class FastTrain:
                 out = self.model.forward(X).view(y.shape[0])
                 y2 = minitorch.tensor(data.y)
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
-                log_fn(epoch, total_loss, correct, losses)
+                epoch_duration = time.time() - start_time  # Calculate duration
+                log_fn(epoch, total_loss, correct, losses, epoch_duration)  # Pass duration
 
 
 if __name__ == "__main__":
