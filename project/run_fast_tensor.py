@@ -1,8 +1,7 @@
 import random
-
 import numba
-
 import minitorch
+import time  # Added import
 
 datasets = minitorch.datasets
 FastTensorBackend = minitorch.TensorBackend(minitorch.FastOps)
@@ -10,8 +9,8 @@ if numba.cuda.is_available():
     GPUBackend = minitorch.TensorBackend(minitorch.CudaOps)
 
 
-def default_log_fn(epoch, total_loss, correct, losses):
-    print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
+def default_log_fn(epoch, total_loss, correct, losses, epoch_time):  # Modified function signature
+    print("Epoch ", epoch, " loss ", total_loss, "correct", correct, "time", epoch_time)
 
 
 def RParam(*shape, backend):
@@ -30,7 +29,10 @@ class Network(minitorch.Module):
 
     def forward(self, x):
         # TODO: Implement for Task 3.5.
-        raise NotImplementedError("Need to implement for Task 3.5")
+        # raise NotImplementedError("Need to implement for Task 3.5")
+        h = self.layer1.forward(x).relu()
+        h = self.layer2.forward(h).relu()
+        return self.layer3.forward(h).sigmoid()
 
 
 class Linear(minitorch.Module):
@@ -44,7 +46,8 @@ class Linear(minitorch.Module):
 
     def forward(self, x):
         # TODO: Implement for Task 3.5.
-        raise NotImplementedError("Need to implement for Task 3.5")
+        # raise NotImplementedError("Need to implement for Task 3.5")
+        return x @ self.weights.value + self.bias.value
 
 
 class FastTrain:
@@ -66,6 +69,7 @@ class FastTrain:
         losses = []
 
         for epoch in range(max_epochs):
+            start_time = time.time()  # Start time
             total_loss = 0.0
             c = list(zip(data.X, data.y))
             random.shuffle(c)
@@ -95,7 +99,8 @@ class FastTrain:
                 out = self.model.forward(X).view(y.shape[0])
                 y2 = minitorch.tensor(data.y)
                 correct = int(((out.detach() > 0.5) == y2).sum()[0])
-                log_fn(epoch, total_loss, correct, losses)
+                epoch_duration = time.time() - start_time  # Calculate duration
+                log_fn(epoch, total_loss, correct, losses, epoch_duration)  # Pass duration
 
 
 if __name__ == "__main__":
@@ -116,7 +121,7 @@ if __name__ == "__main__":
     if args.DATASET == "xor":
         data = minitorch.datasets["Xor"](PTS)
     elif args.DATASET == "simple":
-        data = minitorch.datasets["Simple"].simple(PTS)
+        data = minitorch.datasets["Simple"](PTS)
     elif args.DATASET == "split":
         data = minitorch.datasets["Split"](PTS)
 
