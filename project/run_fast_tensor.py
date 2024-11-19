@@ -1,8 +1,7 @@
 import random
-
 import numba
-
 import minitorch
+import time  # Added for timing
 
 datasets = minitorch.datasets
 FastTensorBackend = minitorch.TensorBackend(minitorch.FastOps)
@@ -56,6 +55,7 @@ class FastTrain:
         self.hidden_layers = hidden_layers
         self.model = Network(hidden_layers, backend)
         self.backend = backend
+        self.epoch_times = []  # Initialize list to store epoch times
 
     def run_one(self, x):
         return self.model.forward(minitorch.tensor([x], backend=self.backend))
@@ -68,8 +68,10 @@ class FastTrain:
         optim = minitorch.SGD(self.model.parameters(), learning_rate)
         BATCH = 10
         losses = []
+        self.epoch_times = []  # Initialize epoch times
 
         for epoch in range(max_epochs):
+            start_time = time.time()  # Start timing
             total_loss = 0.0
             c = list(zip(data.X, data.y))
             random.shuffle(c)
@@ -90,6 +92,10 @@ class FastTrain:
 
                 # Update
                 optim.step()
+
+            end_time = time.time()  # End timing
+            epoch_duration = end_time - start_time
+            self.epoch_times.append(epoch_duration)  # Record epoch time
 
             losses.append(total_loss)
             # Logging
