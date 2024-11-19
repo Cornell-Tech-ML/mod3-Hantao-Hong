@@ -41,7 +41,9 @@ The files that will be synced are:
 !cd $DIR; time PYTHONPATH=/content/$DIR python3.12 project/run_fast_tensor.py --BACKEND cpu --HIDDEN 100 --DATASET split --RATE 0.05 --PLOT True
 ```
 
+GPU
 <img src= "images/simple_GPU.png">
+CPU
 <img src= "images/simple_CPU.png">
 
 ### Split
@@ -51,26 +53,23 @@ The files that will be synced are:
 !cd $DIR; time PYTHONPATH=/content/$DIR python3.12 project/run_fast_tensor.py --BACKEND cpu --HIDDEN 100 --DATASET split --RATE 0.05 --PLOT True
 ```
 
-split
 
-output
-
+GPU
 <img src= "images/split_GPU.png">
+CPU
 <img src= "images/split_CPU.png">
 
 
 ### xor
 
-
-Script
 ```bash
 !cd $DIR; time PYTHONPATH=/content/$DIR python3.12 project/run_fast_tensor.py --BACKEND gpu --HIDDEN 100 --DATASET xor --RATE 0.05 --PLOT True
 !cd $DIR; time PYTHONPATH=/content/$DIR python3.12 project/run_fast_tensor.py --BACKEND cpu --HIDDEN 100 --DATASET xor --RATE 0.05 --PLOT True
 ```
 
-output
-
+GPU
 <img src= "images/xor_GPU.png">
+CPU
 <img src= "images/xor_CPU.png">
 
 ### Bigger Example xor
@@ -80,5 +79,8 @@ output
 !cd $DIR; time PYTHONPATH=/content/$DIR python3.12 project/run_fast_tensor.py --BACKEND cpu --HIDDEN 300 --DATASET xor --RATE 0.01
 ```
 
+
+GPU
 <img src= "images/bigger_GPU.png">
+CPU
 <img src= "images/bigger_CPU.png">
